@@ -1,0 +1,210 @@
+// Firebase Firestore Security Rules
+// Basketball AI Ecosystem Database v1.0.0
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'admin';
+    }
+    
+    function isCoach() {
+      return isAuthenticated() && 
+             (request.auth.token.role == 'coach' || request.auth.token.role == 'admin');
+    }
+    
+    function isPremium() {
+      return isAuthenticated() && 
+             (request.auth.token.role == 'premium' || 
+              request.auth.token.role == 'coach' || 
+              request.auth.token.role == 'admin');
+    }
+
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    match /users/{userId} {
+      // Users can read/write their own profile
+      allow read, write: if isOwner(userId);
+      
+      // Admins can read/write any user profile
+      allow read, write: if isAdmin();
+      
+      // Coaches can read user profiles (for their students)
+      allow read: if isCoach();
+      
+      // Public profile fields (for community features)
+      allow read: if isAuthenticated() && 
+                     resource.data.preferences.privacyLevel == 'public';
+    }
+
+    // ========================================
+    // VIDEOS COLLECTION
+    // ========================================
+    match /videos/{videoId} {
+      // Users can manage their own videos
+      allow read, write: if isOwner(resource.data.userId);
+      
+      // Admins can access any video
+      allow read, write: if isAdmin();
+      
+      // Videos must have proper userId
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // ========================================
+    // SHOTS COLLECTION
+    // ========================================
+    match /shots/{shotId} {
+      // Users can manage their own shot analyses
+      allow read, write: if isOwner(resource.data.userId);
+      
+      // Admins can access any shot analysis
+      allow read, write: if isAdmin();
+      
+      // Coaches can read shots from their students
+      allow read: if isCoach();
+      
+      // Public shots can be read by authenticated users
+      allow read: if isAuthenticated() && resource.data.shared == true;
+      
+      // Shot creation validation
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.keys().hasAll(['userId', 'videoId', 'status']);
+    }
+
+    // ========================================
+    // DRILLS COLLECTION
+    // ========================================
+    match /drills/{drillId} {
+      // All authenticated users can read drills
+      allow read: if isAuthenticated();
+      
+      // Only admins and coaches can create/modify system drills
+      allow write: if isCoach() && 
+                      (!resource.data.keys().hasAny(['createdBy']) || 
+                       resource.data.createdBy == request.auth.uid);
+      
+      // Users can create custom drills
+      allow create: if isAuthenticated() && 
+                       request.resource.data.createdBy == request.auth.uid;
+      
+      // Users can modify their own custom drills
+      allow update, delete: if isAuthenticated() && 
+                               resource.data.createdBy == request.auth.uid;
+    }
+
+    // ========================================
+    // TRAINING PLANS COLLECTION
+    // ========================================
+    match /plans/{planId} {
+      // Users can manage their own training plans
+      allow read, write: if isOwner(resource.data.userId);
+      
+      // Admins can access any training plan
+      allow read, write: if isAdmin();
+      
+      // Coaches can read/create plans for their students
+      allow read, create: if isCoach();
+      
+      // Plan creation validation
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // ========================================
+    // PLAN ITEMS COLLECTION
+    // ========================================
+    match /plan_items/{itemId} {
+      // Access controlled through parent plan
+      allow read, write: if isAuthenticated() && 
+                            exists(/databases/$(database)/documents/plans/$(resource.data.planId)) &&
+                            get(/databases/$(database)/documents/plans/$(resource.data.planId)).data.userId == request.auth.uid;
+      
+      // Admins can access any plan item
+      allow read, write: if isAdmin();
+    }
+
+    // ========================================
+    // SCORES COLLECTION
+    // ========================================
+    match /scores/{scoreId} {
+      // Users can read their own scores
+      allow read: if isOwner(resource.data.userId);
+      
+      // Public scores for leaderboards (if user opted in)
+      allow read: if isAuthenticated() && resource.data.isPublic == true;
+      
+      // System can create scores (via Cloud Functions)
+      // Users cannot directly create/modify scores
+      allow write: if false; // Only Cloud Functions can write scores
+      
+      // Admins can manage scores
+      allow read, write: if isAdmin();
+    }
+
+    // ========================================
+    // COMMUNITY POSTS COLLECTION
+    // ========================================
+    match /community_posts/{postId} {
+      // Users can manage their own posts
+      allow read, write: if isOwner(resource.data.userId);
+      
+      // Public posts can be read by all authenticated users
+      allow read: if isAuthenticated() && 
+                     resource.data.visibility == 'public' &&
+                     resource.data.approved == true;
+      
+      // Friends can see friend posts (simplified - would need friend system)
+      allow read: if isAuthenticated() && 
+                     resource.data.visibility == 'friends';
+      
+      // Post creation validation
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.userName.size() > 0;
+      
+      // Admins can manage any post (for moderation)
+      allow read, write: if isAdmin();
+    }
+
+    // ========================================
+    // METADATA COLLECTION
+    // ========================================
+    match /_metadata/{doc} {
+      // Only admins can read/write metadata
+      allow read, write: if isAdmin();
+    }
+
+    // ========================================
+    // ANALYTICS COLLECTION (for future use)
+    // ========================================
+    match /analytics/{doc} {
+      // Only system and admins can write analytics
+      allow read, write: if isAdmin();
+      allow write: if false; // Only Cloud Functions
+    }
+
+    // ========================================
+    // DEFAULT DENY
+    // ========================================
+    // Deny access to any other collections/documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

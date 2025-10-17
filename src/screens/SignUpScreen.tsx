@@ -10,7 +10,8 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextFirebase';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 interface SignUpScreenProps {
   onToggleMode: () => void;
@@ -145,6 +146,22 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onToggleMode }) => {
             </Text>
           </TouchableOpacity>
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <GoogleSignInButton
+            onSuccess={() => {
+              console.log('✅ Google Sign-In completed');
+            }}
+            onError={(error) => {
+              Alert.alert('Google Sign In Failed', error.message);
+            }}
+            disabled={isLoading}
+          />
+
           <TouchableOpacity
             style={styles.switchButton}
             onPress={onToggleMode}
@@ -227,8 +244,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
   switchButton: {
     alignItems: 'center',
+    marginTop: 24,
   },
   switchText: {
     fontSize: 14,

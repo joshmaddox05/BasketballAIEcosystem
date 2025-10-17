@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "basketball-ai-ecosystem",
+    "staging": "basketball-ai-ecosystem-staging",
+    "production": "basketball-ai-ecosystem-prod"
+  }
+}

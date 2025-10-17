@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
-  User, 
+  User as FirebaseUser, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut,
@@ -9,11 +9,15 @@ import {
   updateProfile as firebaseUpdateProfile,
   sendPasswordResetEmail,
   updatePassword as firebaseUpdatePassword,
-  UserCredential
+  UserCredential,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithPopup
 } from 'firebase/auth';
 import * as SecureStore from 'expo-secure-store';
 import { auth } from '../services/firebase';
-import { userService, UserProfile } from '../services/firestore';
+import { repositories } from '../database/repositories';
+import { User as DatabaseUser } from '../database/schema';
 
 export type UserRole = 'free' | 'premium' | 'admin';
 
@@ -28,11 +32,12 @@ export interface AuthUser {
 
 export interface AuthContextType {
   user: AuthUser | null;
-  profile: UserProfile | null;
+  profile: DatabaseUser | null;
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<UserCredential>;
   signUp: (email: string, password: string, displayName?: string) => Promise<UserCredential>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: { displayName?: string; photoURL?: string }) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -53,13 +58,16 @@ const TOKEN_KEY = 'firebase_token';
 const USER_KEY = 'user_data';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const providerId = React.useRef(Math.random().toString(36).substring(2, 9));
+  console.log(`🚀 AuthProvider initializing... (ID: ${providerId.current})`);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<DatabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const profileFetchingRef = React.useRef(false);
 
   // Convert Firebase User to our AuthUser type
-  const convertFirebaseUser = async (firebaseUser: User): Promise<AuthUser> => {
+  const convertFirebaseUser = async (firebaseUser: FirebaseUser): Promise<AuthUser> => {
     // Get ID token to extract custom claims (role)
     const token = await firebaseUser.getIdToken();
     const tokenResult = await firebaseUser.getIdTokenResult();
@@ -75,29 +83,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Load user profile from Firestore
-  const loadUserProfile = async (firebaseUser: User | null) => {
+  const loadUserProfile = async (firebaseUser: FirebaseUser | null) => {
     if (!firebaseUser) {
       setProfile(null);
       return;
     }
 
+    // Prevent concurrent profile fetching
+    if (profileFetchingRef.current) {
+      console.log('⏳ Profile fetch already in progress, skipping...');
+      return;
+    }
+
+    profileFetchingRef.current = true;
     try {
-      let userProfile = await userService.getProfile(firebaseUser.uid);
+      console.log(`🔄 Loading user profile... (Provider: ${providerId.current})`);
+      let userProfile = await repositories.users.getProfile(firebaseUser.uid);
       
       // Create profile if it doesn't exist
       if (!userProfile) {
-        await userService.createProfile(firebaseUser.uid, {
+        console.log('📝 No profile found, creating new profile...');
+        await repositories.users.createProfile(firebaseUser.uid, {
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || 'Basketball Player',
           role: 'free'
         });
-        userProfile = await userService.getProfile(firebaseUser.uid);
+        userProfile = await repositories.users.getProfile(firebaseUser.uid);
       }
       
       setProfile(userProfile);
+      console.log(`✅ User profile loaded successfully (Provider: ${providerId.current})`);
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.warn(`Failed to fetch profile (Provider: ${providerId.current}):`, error);
       setProfile(null);
+      
+      // Check if it's a network error
+      if (error instanceof Error && error.message.includes('Network request failed')) {
+        console.log('📡 Network issue detected - profile will be null but auth continues');
+      }
+    } finally {
+      profileFetchingRef.current = false;
     }
   };
 
@@ -179,6 +204,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Sign in with Google
+  const signInWithGoogle = async (): Promise<void> => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Check if we're in a development build or Expo Go
+      if (!googleRequest) {
+        // Show helpful message for Expo Go users
+        const errorMessage = 
+          'Google Sign-In requires a development build. ' +
+          'Please use email/password authentication in Expo Go, ' +
+          'or run "npx expo run:ios" to build a development version with native modules.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      console.log('🔐 Initiating Google sign-in...');
+      
+      // Prompt for Google sign-in
+      const result = await promptGoogleAsync();
+
+      if (result?.type === 'success') {
+        console.log('✅ Google auth successful, exchanging token...');
+        const { id_token } = result.params;
+        
+        // Create Google credential
+        const credential = GoogleAuthProvider.credential(id_token);
+        
+        // Sign in with Firebase
+        const userCredential = await signInWithCredential(auth, credential);
+        
+        // Store token
+        const token = await userCredential.user.getIdToken();
+        await storeToken(token);
+        
+        console.log('✅ Google sign-in complete');
+      } else if (result?.type === 'cancel') {
+        console.log('❌ User cancelled Google sign-in');
+        throw new Error('Google sign-in was cancelled');
+      } else {
+        console.error('❌ Google sign-in failed:', result);
+        throw new Error('Google sign-in failed');
+      }
+    } catch (err) {
+      console.error('❌ Google sign-in error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Google sign-in failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sign out
   const signOut = async (): Promise<void> => {
     try {
@@ -205,7 +284,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await firebaseUpdateProfile(auth.currentUser, updates);
       
       // Update Firestore profile
-      await userService.updateProfile(auth.currentUser.uid, {
+      await repositories.users.updateProfile(auth.currentUser.uid, {
         displayName: updates.displayName,
         avatar: updates.photoURL
       });
@@ -290,7 +369,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    console.log(`🔧 Setting up auth state listener (Provider: ${providerId.current})`);
+    
+    if (!auth) {
+      console.error('❌ Auth service is not initialized!');
+      setError('Firebase authentication is not available');
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      console.log(`🔄 Auth state changed: ${firebaseUser ? 'User signed in' : 'User signed out'} (Provider: ${providerId.current})`);
       setLoading(true);
       
       try {
@@ -325,20 +414,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribe = userService.subscribeToProfile(user.uid, (updatedProfile) => {
+    console.log(`📡 Setting up profile subscription (Provider: ${providerId.current})`);
+    const unsubscribe = repositories.users.subscribeToProfile(user.uid, (updatedProfile: DatabaseUser | null) => {
+      console.log(`📊 Profile updated via subscription (Provider: ${providerId.current})`);
       setProfile(updatedProfile);
     });
 
-    return unsubscribe;
+    return () => {
+      console.log(`📡 Cleaning up profile subscription (Provider: ${providerId.current})`);
+      unsubscribe();
+    };
   }, [user]);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = React.useMemo(() => ({
     user,
     profile,
     loading,
     error,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     updateProfile,
     updatePassword,
@@ -347,7 +442,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshProfile,
     clearError,
     refreshToken,
-  };
+  }), [user, profile, loading, error, googleRequest]);
 
   return (
     <AuthContext.Provider value={value}>

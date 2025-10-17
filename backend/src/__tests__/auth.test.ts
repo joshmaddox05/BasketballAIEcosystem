@@ -1,7 +1,8 @@
+import { initializeFirebase } from '../services/firebase';
+
 describe('Authentication Integration', () => {
   it('should validate Firebase service configuration', () => {
     // Test that Firebase service module can be imported
-    const { initializeFirebase } = require('../services/firebase');
     expect(initializeFirebase).toBeDefined();
     expect(typeof initializeFirebase).toBe('function');
   });

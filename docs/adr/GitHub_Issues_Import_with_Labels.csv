@@ -1,0 +1,413 @@
+Title,Body,Labels,Milestone,Assignee,State
+T-001 Infra: Monorepo & Tooling,"### Context
+Set up monorepo, pnpm workspaces, linting, pre-commit hooks, Makefile targets.
+
+### Acceptance Criteria
+- CI runs lint/build/test on PR
+- `make dev` runs app + backend locally
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Infra;AC:present,Sprint 1 – Core Infrastructure,,open
+T-002 Backend: API skeleton & health,"### Context
+Scaffold API with /healthz, OpenAPI at /docs, request-id, error middleware.
+
+### Acceptance Criteria
+- `GET /healthz` returns ok
+- OpenAPI live at `/docs`
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Backend;AC:present,Sprint 1 – Core Infrastructure,,open
+T-003 Auth: Firebase JWT integration,"### Context
+JWT verify middleware + role guard (PLAYER/COACH/ADMIN).
+
+### Acceptance Criteria
+- 401/403 without token
+- 200 with valid token + role
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Backend;AC:present,Sprint 1 – Core Infrastructure,,open
+T-004 DB: Postgres schema v1 + migrations,"### Context
+Migrations for users, videos, shots, metrics, drills, plans, plan_items, scores.
+
+### Acceptance Criteria
+- Migrations apply/rollback
+- Repository unit tests
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Backend;AC:present,Sprint 1 – Core Infrastructure,,open
+T-005 Mobile: Expo bootstrap,"### Context
+Initialize Expo app with navigation + env wiring.
+
+### Acceptance Criteria
+- App compiles iOS/Android
+- Env documented
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Mobile;AC:present,Sprint 1 – Core Infrastructure,,open
+T-006 CI/CD: Actions + staging deploy,"### Context
+Pipelines (PR lint/test/build, main deploy). Stage backend.
+
+### Acceptance Criteria
+- Pipelines green
+- Staging `/healthz` ok
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 1 – Core Infrastructure;Component:Infra;AC:present,Sprint 1 – Core Infrastructure,,open
+T-101 API: Signed upload flow,"### Context
+POST /videos/signed-url returns pre-signed PUT; persists metadata (userId,duration,fps,angle).
+
+### Acceptance Criteria
+- Upload tested via Postman
+- DB row created
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 2 – AI Shot Calibrator;Component:API;AC:present,Sprint 2 – AI Shot Calibrator,,open
+T-102 Mobile: Video capture & resumable upload,"### Context
+expo-camera record/preview; background upload with retry/resume.
+
+### Acceptance Criteria
+- iOS/Android demo video
+- E2E covers network loss resume
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 2 – AI Shot Calibrator;Component:Mobile;AC:present,Sprint 2 – AI Shot Calibrator,,open
+T-103 ML: Metrics JSON contract (ShotDNA),"### Context
+Define metrics schema: release_ms, elbow_angle_deg, wrist_flick_deg_s, arc_proxy_deg, consistency_score, tips[].
+
+### Acceptance Criteria
+- Schema validation tests
+- Contract fixtures in repo
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 2 – AI Shot Calibrator;Component:ML;AC:present,Sprint 2 – AI Shot Calibrator,,open
+T-104 ML: Baseline model (MediaPipe → TFLite),"### Context
+Pipeline for keypoint extraction; training; export .tflite; inference API or on-device bridge.
+
+### Acceptance Criteria
+- 3 fixtures return metrics <500ms
+- Accuracy notes in docs
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 2 – AI Shot Calibrator;Component:ML;AC:present,Sprint 2 – AI Shot Calibrator,,open
+T-105 App: Feedback overlay UI,"### Context
+Side-by-side baseline vs user; overlay angles/pose lines; tips.
+
+### Acceptance Criteria
+- Overlay renders <150ms
+- Screenshot in PR
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 2 – AI Shot Calibrator;Component:UI;AC:present,Sprint 2 – AI Shot Calibrator,,open
+T-201 DBE: Rules-first engine → daily plans,"### Context
+Policies (YAML/JSON) convert metrics to drills; POST /blueprints creates plan + plan_items.
+
+### Acceptance Criteria
+- Golden tests pass
+- Shadow policy harness
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 3 – Intelligence Layer;Component:Backend;AC:present,Sprint 3 – Intelligence Layer,,open
+T-202 Drills: Library & APIs,"### Context
+Seed 30 drills; GET /drills?tags= filter; model includes duration/equipment/outcome.
+
+### Acceptance Criteria
+- Integration tests for filters/sorting
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 3 – Intelligence Layer;Component:Backend;AC:present,Sprint 3 – Intelligence Layer,,open
+T-203 Training Hub UI: Today’s Plan,"### Context
+Dashboard with offline cache; completion toggle; streaks/badges.
+
+### Acceptance Criteria
+- E2E for view & complete
+- Events emitted
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 3 – Intelligence Layer;Component:UI;AC:present,Sprint 3 – Intelligence Layer,,open
+T-204 EvalRank: Composite scoring & leaderboard,"### Context
+Normalize sessions; compute composite score; leaderboard endpoint.
+
+### Acceptance Criteria
+- Backtests + calibration docs
+- Unit tests for scoring
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 3 – Intelligence Layer;Component:ML;AC:present,Sprint 3 – Intelligence Layer,,open
+T-301 SimCoach: 2D simulation MVP,"### Context
+Deterministic, seeded 2D simulation generating insights for DBE.
+
+### Acceptance Criteria
+- Scenario fixtures
+- Determinism regression tests
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 4 – Simulation & Scouting;Component:UI;AC:present,Sprint 4 – Simulation & Scouting,,open
+T-302 ScoutLab: Scouting dashboard + exports,"### Context
+Filterable table, player profiles, CSV/PDF export.
+
+### Acceptance Criteria
+- Cypress test for filter + export
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 4 – Simulation & Scouting;Component:UI;AC:present,Sprint 4 – Simulation & Scouting,,open
+T-401 CoachMarket: Catalog + Stripe Checkout,"### Context
+Program listing/upload; Stripe Checkout; webhook handlers; entitlements/receipts.
+
+### Acceptance Criteria
+- Test cards succeed
+- Entitlement granted after purchase
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 5 – Marketplace & Licensing;Component:API;AC:present,Sprint 5 – Marketplace & Licensing,,open
+T-402 Licensing Portal: Orgs & Seats,"### Context
+Org and seat management; usage analytics; optional SSO.
+
+### Acceptance Criteria
+- Role delegation tests
+- Usage dashboard visible
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 5 – Marketplace & Licensing;Component:Backend;AC:present,Sprint 5 – Marketplace & Licensing,,open
+T-501 HoopCommunity: Feed + moderation,"### Context
+Posts, comments, likes; profanity filter; report/block; rate limits.
+
+### Acceptance Criteria
+- Abuse moderation tests pass
+- Admin actions verified
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 6 – Social & Legacy;Component:Backend;AC:present,Sprint 6 – Social & Legacy,,open
+T-502 LegacyVault: Archive + search,"### Context
+Archive uploads, tagging, search index, CDN caching headers.
+
+### Acceptance Criteria
+- Search E2E passes
+- Cache hit-rate metric reported
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 6 – Social & Legacy;Component:Backend;AC:present,Sprint 6 – Social & Legacy,,open
+T-601 QA: Perf/Load & device matrix,"### Context
+k6/Gatling load tests; device matrix; synthetic monitors; budgets.
+
+### Acceptance Criteria
+- Reports uploaded to /docs/qa
+- Budgets met or waivers approved
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 7 – QA & Launch;Component:QA;AC:present,Sprint 7 – QA & Launch,,open
+T-602 Deployment: TestFlight/Play releases,"### Context
+Release builds, store listings, release checklist, rollback drill.
+
+### Acceptance Criteria
+- Live builds available
+- Rollback rehearsal documented
+
+### Definition of Done
+- Code + tests + docs updated
+- Feature flagged where risky
+- Telemetry events added
+- OpenAPI/schema updated
+- PR includes 'How I verified' with commands/screens
+
+### Verification Notes
+- Add screenshots/logs
+- Link to related ADR in /docs/adr
+",Sprint:Sprint 7 – QA & Launch;Component:Infra;AC:present,Sprint 7 – QA & Launch,,open

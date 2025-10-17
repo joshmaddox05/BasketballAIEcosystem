@@ -10,6 +10,7 @@ import {
   TrainingPlan,
   CommunityPost
 } from '../services/firestore';
+import { User as DatabaseUser, Shot, CommunityPost as DatabaseCommunityPost } from '../database/schema';
 
 // User Profile Hook
 export const useUserProfile = (user: User | null) => {

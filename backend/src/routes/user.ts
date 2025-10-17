@@ -11,7 +11,7 @@ export interface UserProfileResponse {
   requestId: string;
 }
 
-export const getUserProfile = async (request: FastifyRequest, reply: FastifyReply): Promise<UserProfileResponse> => {
+export const getUserProfile = async (request: FastifyRequest, _reply: FastifyReply): Promise<UserProfileResponse> => {
   // User is guaranteed to exist because of auth middleware
   const user = request.user!;
   const requestId = request.headers['x-request-id'] as string;

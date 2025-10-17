@@ -19,8 +19,111 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { auth, db } from './firebase';
+import { repositories } from '../database/repositories';
+import { initializeDatabase } from '../database/migrations';
+import { User as DatabaseUser, Shot as DatabaseShot, TrainingPlan as DatabaseTrainingPlan } from '../database/schema';
 
-// Types for our data structures
+// Re-export repository instances for backwards compatibility with method aliases
+class UserServiceWrapper {
+  private repo = repositories.users;
+  
+  // Legacy API with type conversion
+  async getProfile(userId: string): Promise<UserProfile | null> {
+    const user = await this.repo.getProfile(userId);
+    return user ? convertUserToProfile(user) : null;
+  }
+  
+  async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
+    const convertedUpdates = convertProfileToUser(updates);
+    return this.repo.updateProfile(userId, convertedUpdates);
+  }
+  
+  subscribeToProfile(userId: string, callback: (profile: UserProfile | null) => void): () => void {
+    return this.repo.subscribeToProfile(userId, (user) => {
+      callback(user ? convertUserToProfile(user) : null);
+    });
+  }
+  
+  // Direct repository delegates
+  getById = this.repo.getById.bind(this.repo);
+  update = this.repo.update.bind(this.repo);
+  create = this.repo.create.bind(this.repo);
+  delete = this.repo.delete.bind(this.repo);
+  list = this.repo.list.bind(this.repo);
+  subscribe = this.repo.subscribe.bind(this.repo);
+  createProfile = this.repo.createProfile.bind(this.repo);
+  updateStats = this.repo.updateStats.bind(this.repo);
+  getLeaderboard = this.repo.getLeaderboard.bind(this.repo);
+}
+
+class ShotServiceWrapper {
+  private repo = repositories.shots;
+  
+  // Legacy API with type conversion
+  async createShot(userId: string, shotData: Partial<ShotAnalysis>): Promise<string> {
+    const convertedData = convertAnalysisToShot(shotData);
+    return this.repo.createShotLegacy(userId, convertedData);
+  }
+  
+  async getUserShots(userId: string, includeShared?: boolean): Promise<ShotAnalysis[]> {
+    const shots = await this.repo.getUserShots(userId, includeShared);
+    return shots.map(convertShotToAnalysis);
+  }
+  
+  subscribeToUserShots(userId: string, callback: (shots: ShotAnalysis[]) => void): () => void {
+    return this.repo.subscribeToUserShots(userId, (shots) => {
+      callback(shots.map(convertShotToAnalysis));
+    });
+  }
+  
+  updateShotAnalysis = this.repo.updateShotAnalysis.bind(this.repo);
+  
+  // Standard repository methods
+  getById = this.repo.getById.bind(this.repo);
+  update = this.repo.update.bind(this.repo);
+  delete = this.repo.delete.bind(this.repo);
+  list = this.repo.list.bind(this.repo);
+  subscribe = this.repo.subscribe.bind(this.repo);
+  updateAnalysis = this.repo.updateAnalysis.bind(this.repo);
+  getByUser = this.repo.getByUser.bind(this.repo);
+  getSharedShots = this.repo.getSharedShots.bind(this.repo);
+  shareShot = this.repo.shareShot.bind(this.repo);
+}
+
+class CommunityServiceWrapper {
+  private repo = repositories.community;
+  
+  // Legacy method mapping
+  createPost = this.repo.createPostLegacy.bind(this.repo);
+  getLeaderboard = this.repo.getLeaderboard.bind(this.repo);
+  subscribeToFeed = this.repo.subscribeToFeed.bind(this.repo);
+  subscribeToLeaderboard = this.repo.subscribeToLeaderboard.bind(this.repo);
+  
+  // Standard repository methods
+  getById = this.repo.getById.bind(this.repo);
+  update = this.repo.update.bind(this.repo);
+  delete = this.repo.delete.bind(this.repo);
+  list = this.repo.list.bind(this.repo);
+  subscribe = this.repo.subscribe.bind(this.repo);
+  getFeed = this.repo.getFeed.bind(this.repo);
+  getByUser = this.repo.getByUser.bind(this.repo);
+  likePost = this.repo.likePost.bind(this.repo);
+  reportPost = this.repo.reportPost.bind(this.repo);
+}
+
+export const userService = new UserServiceWrapper();
+export const videoService = repositories.videos;
+export const shotService = new ShotServiceWrapper();
+export const drillService = repositories.drills;
+export const planService = repositories.plans;
+export const scoreService = repositories.scores;
+export const communityService = new CommunityServiceWrapper();
+export const trainingService = repositories.plans; // Alias for backwards compatibility
+
+// Initialize database on import
+initializeDatabase().catch(console.error);
+
+// Backwards compatibility type aliases
 export interface UserProfile {
   id: string;
   email: string;
@@ -75,7 +178,7 @@ export interface TrainingPlan {
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   estimatedDuration: number; // minutes
-  drills: Array<{
+  drills: {
     id: string;
     title: string;
     description: string;
@@ -83,7 +186,7 @@ export interface TrainingPlan {
     completed: boolean;
     instructions: string[];
     videoUrl?: string;
-  }>;
+  }[];
   aiRecommendations: string[];
   progress: {
     completedDrills: number;
@@ -110,282 +213,104 @@ export interface CommunityPost {
   tags?: string[];
 }
 
-// User Profile Service
-export const userService = {
-  async createProfile(userId: string, userData: {
-    email: string;
-    displayName: string;
-    role?: 'free' | 'premium' | 'admin';
-  }): Promise<void> {
-    const userRef = doc(db, 'users', userId);
-    await setDoc(userRef, {
-      ...userData,
-      role: userData.role || 'free',
-      avatar: null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      stats: {
-        totalShots: 0,
-        improvedShots: 0,
-        currentStreak: 0,
-        bestStreak: 0,
-        totalPoints: 0,
-        level: 1
-      },
-      preferences: {
-        notifications: true,
-        shareProgress: true,
-        preferredUnits: 'imperial'
-      }
-    });
+// Legacy services have been replaced by the repository layer in src/database/repositories.ts
+// The exports above (userService, shotService, etc.) now point to the new repository instances
+// for backwards compatibility with existing code.
+
+// ========================================
+// TYPE CONVERTERS FOR BACKWARDS COMPATIBILITY
+// ========================================
+
+// Convert database User to legacy UserProfile
+export const convertUserToProfile = (user: DatabaseUser): UserProfile => ({
+  id: user.id,
+  email: user.email,
+  displayName: user.displayName,
+  role: user.role === 'coach' ? 'admin' : user.role, // Map coach to admin for legacy compatibility
+  avatar: user.avatar,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+  stats: {
+    totalShots: user.stats.totalShots,
+    improvedShots: user.stats.improvedShots,
+    currentStreak: user.stats.currentStreak,
+    bestStreak: user.stats.bestStreak,
+    totalPoints: user.stats.totalPoints,
+    level: user.stats.level
   },
-
-  async getProfile(userId: string): Promise<UserProfile | null> {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      return { id: userSnap.id, ...userSnap.data() } as UserProfile;
-    }
-    return null;
-  },
-
-  async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    });
-  },
-
-  async updateStats(userId: string, statUpdates: Partial<UserProfile['stats']>): Promise<void> {
-    const userRef = doc(db, 'users', userId);
-    const updateData: any = { updatedAt: serverTimestamp() };
-    
-    // Use increment for numeric stats
-    Object.entries(statUpdates).forEach(([key, value]) => {
-      if (typeof value === 'number') {
-        updateData[`stats.${key}`] = increment(value);
-      } else {
-        updateData[`stats.${key}`] = value;
-      }
-    });
-
-    await updateDoc(userRef, updateData);
-  },
-
-  subscribeToProfile(userId: string, callback: (profile: UserProfile | null) => void) {
-    const userRef = doc(db, 'users', userId);
-    return onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        callback({ id: doc.id, ...doc.data() } as UserProfile);
-      } else {
-        callback(null);
-      }
-    });
+  preferences: {
+    notifications: user.preferences.notifications,
+    shareProgress: user.preferences.shareProgress,
+    preferredUnits: user.preferences.preferredUnits
   }
-};
+});
 
-// Shot Analysis Service
-export const shotService = {
-  async createShot(userId: string, shotData: {
-    videoUrl: string;
-    thumbnailUrl?: string;
-    location?: { lat: number; lng: number; court?: string };
-  }): Promise<string> {
-    const shotRef = doc(collection(db, 'shots'));
-    await setDoc(shotRef, {
-      userId,
-      ...shotData,
-      status: 'processing',
-      shared: false,
-      createdAt: serverTimestamp()
-    });
-    return shotRef.id;
-  },
+// Convert legacy UserProfile to database User partial
+export const convertProfileToUser = (profile: Partial<UserProfile>): Partial<DatabaseUser> => ({
+  email: profile.email,
+  displayName: profile.displayName,
+  role: profile.role,
+  avatar: profile.avatar,
+  stats: profile.stats ? {
+    totalShots: profile.stats.totalShots,
+    improvedShots: profile.stats.improvedShots,
+    currentStreak: profile.stats.currentStreak,
+    bestStreak: profile.stats.bestStreak,
+    totalPoints: profile.stats.totalPoints,
+    level: profile.stats.level,
+    // Add required fields with defaults
+    totalTrainingTime: 0,
+    completedPlans: 0,
+    averageScore: 0,
+    lastActive: serverTimestamp() as Timestamp
+  } : undefined,
+  preferences: profile.preferences ? {
+    notifications: profile.preferences.notifications,
+    shareProgress: profile.preferences.shareProgress,
+    preferredUnits: profile.preferences.preferredUnits,
+    // Add required fields with defaults
+    privacyLevel: 'public',
+    autoShare: false
+  } : undefined
+});
 
-  async updateShotAnalysis(shotId: string, analysis: ShotAnalysis['metrics']): Promise<void> {
-    const shotRef = doc(db, 'shots', shotId);
-    await updateDoc(shotRef, {
-      metrics: analysis,
-      status: 'completed'
-    });
-  },
+// Convert database Shot to legacy ShotAnalysis
+export const convertShotToAnalysis = (shot: DatabaseShot): ShotAnalysis => ({
+  id: shot.id,
+  userId: shot.userId,
+  videoUrl: shot.videoId, // Use videoId as videoUrl for backwards compatibility
+  thumbnailUrl: undefined, // Not available in new schema
+  status: shot.status === 'queued' ? 'processing' : shot.status,
+  metrics: shot.metrics ? {
+    release_ms: shot.metrics.release_ms,
+    elbow_angle_deg: shot.metrics.elbow_angle_deg,
+    wrist_flick_deg_s: shot.metrics.wrist_flick_deg_s,
+    arc_proxy_deg: shot.metrics.arc_proxy_deg,
+    consistency_score: shot.metrics.consistency_score,
+    overall_score: shot.metrics.overall_score,
+    tips: shot.metrics.tips
+  } : undefined,
+  location: undefined, // Location moved to video metadata
+  createdAt: shot.createdAt,
+  shared: shot.shared
+});
 
-  async getUserShots(userId: string, limitCount = 20): Promise<ShotAnalysis[]> {
-    const shotsQuery = query(
-      collection(db, 'shots'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
-    );
-    const shotsSnap = await getDocs(shotsQuery);
-    return shotsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ShotAnalysis));
-  },
-
-  async getSharedShots(limitCount = 20): Promise<ShotAnalysis[]> {
-    const shotsQuery = query(
-      collection(db, 'shots'),
-      where('shared', '==', true),
-      where('status', '==', 'completed'),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
-    );
-    const shotsSnap = await getDocs(shotsQuery);
-    return shotsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ShotAnalysis));
-  },
-
-  async shareShot(shotId: string): Promise<void> {
-    const shotRef = doc(db, 'shots', shotId);
-    await updateDoc(shotRef, { shared: true });
-  },
-
-  subscribeToUserShots(userId: string, callback: (shots: ShotAnalysis[]) => void) {
-    const shotsQuery = query(
-      collection(db, 'shots'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    
-    return onSnapshot(shotsQuery, (snapshot) => {
-      const shots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ShotAnalysis));
-      callback(shots);
-    });
-  }
-};
-
-// Training Plan Service
-export const trainingService = {
-  async createPlan(userId: string, planData: Omit<TrainingPlan, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> {
-    const planRef = doc(collection(db, 'training_plans'));
-    await setDoc(planRef, {
-      userId,
-      ...planData,
-      progress: {
-        completedDrills: 0,
-        totalDrills: planData.drills.length,
-        timeSpent: 0
-      },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return planRef.id;
-  },
-
-  async getUserPlans(userId: string): Promise<TrainingPlan[]> {
-    const plansQuery = query(
-      collection(db, 'training_plans'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-    const plansSnap = await getDocs(plansQuery);
-    return plansSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingPlan));
-  },
-
-  async updateDrillCompletion(planId: string, drillIndex: number, completed: boolean, timeSpent?: number): Promise<void> {
-    const planRef = doc(db, 'training_plans', planId);
-    const planSnap = await getDoc(planRef);
-    
-    if (planSnap.exists()) {
-      const planData = planSnap.data() as TrainingPlan;
-      const updatedDrills = [...planData.drills];
-      updatedDrills[drillIndex].completed = completed;
-      
-      const completedCount = updatedDrills.filter(drill => drill.completed).length;
-      
-      const updates: any = {
-        drills: updatedDrills,
-        'progress.completedDrills': completedCount,
-        updatedAt: serverTimestamp()
-      };
-
-      if (timeSpent) {
-        updates['progress.timeSpent'] = increment(timeSpent);
-      }
-      
-      await updateDoc(planRef, updates);
-    }
-  },
-
-  async getPlan(planId: string): Promise<TrainingPlan | null> {
-    const planRef = doc(db, 'training_plans', planId);
-    const planSnap = await getDoc(planRef);
-    if (planSnap.exists()) {
-      return { id: planSnap.id, ...planSnap.data() } as TrainingPlan;
-    }
-    return null;
-  }
-};
-
-// Community Service
-export const communityService = {
-  async createPost(userId: string, postData: Omit<CommunityPost, 'id' | 'userId' | 'userName' | 'userAvatar' | 'likes' | 'comments' | 'createdAt'>): Promise<string> {
-    // Get user info for the post
-    const userProfile = await userService.getProfile(userId);
-    
-    const postRef = doc(collection(db, 'community_posts'));
-    await setDoc(postRef, {
-      userId,
-      userName: userProfile?.displayName || 'Anonymous',
-      userAvatar: userProfile?.avatar || null,
-      ...postData,
-      likes: 0,
-      comments: 0,
-      createdAt: serverTimestamp()
-    });
-    return postRef.id;
-  },
-
-  async getFeed(limitCount = 20): Promise<CommunityPost[]> {
-    const feedQuery = query(
-      collection(db, 'community_posts'),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
-    );
-    const feedSnap = await getDocs(feedQuery);
-    return feedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommunityPost));
-  },
-
-  async likePost(postId: string): Promise<void> {
-    const postRef = doc(db, 'community_posts', postId);
-    await updateDoc(postRef, {
-      likes: increment(1)
-    });
-  },
-
-  async getLeaderboard(limitCount = 10): Promise<UserProfile[]> {
-    const usersQuery = query(
-      collection(db, 'users'),
-      orderBy('stats.totalPoints', 'desc'),
-      limit(limitCount)
-    );
-    const usersSnap = await getDocs(usersQuery);
-    return usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-  },
-
-  subscribeToFeed(callback: (posts: CommunityPost[]) => void) {
-    const feedQuery = query(
-      collection(db, 'community_posts'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    
-    return onSnapshot(feedQuery, (snapshot) => {
-      const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommunityPost));
-      callback(posts);
-    });
-  },
-
-  subscribeToLeaderboard(callback: (users: UserProfile[]) => void) {
-    const leaderboardQuery = query(
-      collection(db, 'users'),
-      orderBy('stats.totalPoints', 'desc'),
-      limit(10)
-    );
-    
-    return onSnapshot(leaderboardQuery, (snapshot) => {
-      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-      callback(users);
-    });
-  }
-};
+// Convert legacy ShotAnalysis data to database Shot
+export const convertAnalysisToShot = (analysis: Partial<ShotAnalysis>): Partial<DatabaseShot> => ({
+  videoId: analysis.videoUrl || 'unknown',
+  status: analysis.status,
+  metrics: analysis.metrics ? {
+    release_ms: analysis.metrics.release_ms,
+    elbow_angle_deg: analysis.metrics.elbow_angle_deg,
+    wrist_flick_deg_s: analysis.metrics.wrist_flick_deg_s,
+    arc_proxy_deg: analysis.metrics.arc_proxy_deg,
+    consistency_score: analysis.metrics.consistency_score,
+    overall_score: analysis.metrics.overall_score,
+    form_score: analysis.metrics.consistency_score, // Map to form_score
+    timing_score: analysis.metrics.consistency_score, // Map to timing_score
+    tips: analysis.metrics.tips,
+    improvements: [] // Default empty improvements
+  } : undefined,
+  shared: analysis.shared,
+  tags: []
+});

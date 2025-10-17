@@ -1,5 +1,5 @@
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextFirebase';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 

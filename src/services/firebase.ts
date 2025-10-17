@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { initializeAuth, getAuth, connectAuthEmulator, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
@@ -33,11 +33,11 @@ if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
 }
 
 // Initialize Firebase
-let firebaseApp;
-let auth;
-let db;
-let storage;
-let functions;
+let firebaseApp: any;
+let auth: any;
+let db: any;
+let storage: any;
+let functions: any;
 
 if (process.env.NODE_ENV === 'test') {
   // In test environment, use mocks
@@ -47,10 +47,22 @@ if (process.env.NODE_ENV === 'test') {
   storage = {} as any;
   functions = {} as any;
 } else {
-  firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  // Initialize Firebase App
+  if (getApps().length === 0) {
+    firebaseApp = initializeApp(firebaseConfig);
+    // Initialize auth with IndexedDB persistence for React Native
+    // This works in React Native environments via the AsyncStorage polyfill
+    auth = initializeAuth(firebaseApp, {
+      persistence: indexedDBLocalPersistence
+    });
+    console.log('✅ Firebase initialized with persistence');
+  } else {
+    // Use existing app and auth
+    firebaseApp = getApps()[0];
+    auth = getAuth(firebaseApp);
+    console.log('🔄 Using existing Firebase auth instance');
+  }
   
-  // Initialize services
-  auth = getAuth(firebaseApp);
   db = getFirestore(firebaseApp);
   storage = getStorage(firebaseApp);
   functions = getFunctions(firebaseApp);
