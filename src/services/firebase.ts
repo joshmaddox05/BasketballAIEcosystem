@@ -1,5 +1,8 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -30,10 +33,43 @@ if (missingVars.length > 0 && process.env.NODE_ENV !== 'test') {
 }
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let firebaseApp;
+let auth;
+let db;
+let storage;
+let functions;
 
-// Initialize Auth - Firebase will automatically handle persistence
-const auth: Auth = getAuth(app);
+if (process.env.NODE_ENV === 'test') {
+  // In test environment, use mocks
+  firebaseApp = {} as any;
+  auth = {} as any;
+  db = {} as any;
+  storage = {} as any;
+  functions = {} as any;
+} else {
+  firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  
+  // Initialize services
+  auth = getAuth(firebaseApp);
+  db = getFirestore(firebaseApp);
+  storage = getStorage(firebaseApp);
+  functions = getFunctions(firebaseApp);
 
-export { auth };
-export default app;
+  // Connect to emulators in development (optional)
+  if (__DEV__ && process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+    const EMULATOR_HOST = 'localhost';
+    
+    try {
+      connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`);
+      connectFirestoreEmulator(db, EMULATOR_HOST, 8080);
+      connectStorageEmulator(storage, EMULATOR_HOST, 9199);
+      connectFunctionsEmulator(functions, EMULATOR_HOST, 5001);
+      console.log('🔧 Connected to Firebase emulators');
+    } catch (error) {
+      console.warn('Could not connect to Firebase emulators:', error);
+    }
+  }
+}
+
+export { firebaseApp, auth, db, storage, functions };
+export default firebaseApp;

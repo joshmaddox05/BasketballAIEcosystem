@@ -8,7 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextFirebase';
 import { apiClient } from '../services/apiClient';
 
 interface UserProfileData {
