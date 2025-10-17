@@ -13,7 +13,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "strict": true
+    "strict": true,
+    "types": ["jest", "react-native", "@expo/vector-icons"]
   },
   "include": [
     "**/*.ts",
