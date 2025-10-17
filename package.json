@@ -8,7 +8,7 @@
     "backend",
     "packages/*"
   ],
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@8.15.1",
   "scripts": {
     "dev": "concurrently \"pnpm -w run dev:backend\" \"pnpm -w run dev:mobile\"",
     "dev:backend": "pnpm --filter backend dev",
