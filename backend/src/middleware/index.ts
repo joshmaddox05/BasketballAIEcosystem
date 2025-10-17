@@ -18,7 +18,7 @@ export const errorHandler = async (error: Error, request: FastifyRequest, reply:
     method: request.method,
   }, 'Request error');
 
-  const statusCode = (error as any).statusCode || 500;
+  const statusCode = (error as { statusCode?: number }).statusCode || 500;
   
   reply.status(statusCode).send({
     error: {

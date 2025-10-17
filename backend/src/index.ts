@@ -164,8 +164,8 @@ const start = async () => {
     const host = process.env.HOST || '0.0.0.0';
     
     await server.listen({ port, host });
-    console.log(`🚀 Server ready at http://${host}:${port}`);
-    console.log(`📚 API docs available at http://${host}:${port}/docs`);
+    server.log.info(`🚀 Server ready at http://${host}:${port}`);
+    server.log.info(`📚 API docs available at http://${host}:${port}/docs`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);
