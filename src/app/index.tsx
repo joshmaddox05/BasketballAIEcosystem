@@ -1,10 +1,23 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthScreen } from '../screens/AuthScreen';
+import { HomeScreen } from '../screens/HomeScreen';
 
 export default function Index() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Basketball AI Ecosystem</Text>
-      <Text style={styles.subtitle}>Your AI-powered basketball coach</Text>
+      {user ? <HomeScreen /> : <AuthScreen />}
     </View>
   );
 }
@@ -12,16 +25,15 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
     color: '#666',
   },

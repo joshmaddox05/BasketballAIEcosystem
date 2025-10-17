@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "strict": true,
-    "types": ["jest", "react-native", "@expo/vector-icons"]
+    "types": ["jest", "react-native", "@expo/vector-icons", "node"]
   },
   "include": [
     "**/*.ts",
