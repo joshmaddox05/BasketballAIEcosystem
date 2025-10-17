@@ -28,3 +28,6 @@ export const errorHandler = async (error: Error, request: FastifyRequest, reply:
     },
   });
 };
+
+// Export auth middleware
+export * from './auth';

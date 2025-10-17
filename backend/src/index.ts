@@ -3,14 +3,24 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import 'dotenv/config';
 import { requestIdMiddleware, errorHandler } from './middleware';
 import { getHealthStatus } from './routes/health';
+import { initializeFirebase } from './services/firebase';
 
 const server = Fastify({
   logger: true,
   requestIdLogLabel: 'requestId',
   requestIdHeader: 'x-request-id',
 });
+
+// Initialize Firebase Admin SDK
+try {
+  initializeFirebase();
+  server.log.info('Firebase Admin SDK initialized');
+} catch (error) {
+  server.log.warn('Firebase Admin SDK initialization failed (may be in test mode)');
+}
 
 // Register middleware
 server.addHook('onRequest', requestIdMiddleware);
