@@ -12,6 +12,11 @@ build/
 .env.local
 .env.production
 
+# Firebase credentials
+**/config/firebase-service-account.json
+**/config/google-services.json
+**/config/GoogleService-Info.plist
+
 # IDE
 .vscode/
 .idea/

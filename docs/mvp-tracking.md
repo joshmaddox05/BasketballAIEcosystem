@@ -13,7 +13,7 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
 ### ✅ Sprint 1 – Foundations
 - **T-001** ✅ Monorepo & Tooling (Complete)
 - **T-002** ✅ Backend Health & OpenAPI (Complete)  
-- **T-003** 🔄 Auth Wiring (Firebase JWT) (Backend Complete, Mobile In Progress)
+- **T-003** ✅ Auth Wiring (Firebase JWT) (Complete - Production Ready)
 - **T-004** ⏳ Postgres Schema v1 (Next)
 - **T-005** ⏳ CI/CD Staging Deploy (Planned)
 
