@@ -1,9 +1,9 @@
 name: Deploy to Staging
 
 on:
-  # push:  # Disabled until FIREBASE_TOKEN is configured
-  #   branches:
-  #     - main
+  push:  # Disabled until FIREBASE_TOKEN is configured
+    branches:
+      - main
   workflow_dispatch:  # Manual trigger only for now
 
 jobs:
