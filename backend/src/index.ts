@@ -5,7 +5,9 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import 'dotenv/config';
 import { requestIdMiddleware, errorHandler } from './middleware';
+import { createAuthMiddleware } from './middleware/auth';
 import { getHealthStatus } from './routes/health';
+import { generateSignedUrl, confirmVideoUpload, getVideoMetadata, listUserVideos } from './routes/videos';
 import { initializeFirebase } from './services/firebase';
 
 const server = Fastify({
@@ -140,6 +142,163 @@ server.get('/healthz', {
     },
   },
 }, getHealthStatus);
+
+// Video upload routes (protected)
+server.post('/videos/signed-url', {
+  preHandler: createAuthMiddleware({ required: true }),
+  schema: {
+    description: 'Generate signed URL for video upload to Firebase Storage',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    body: {
+      type: 'object',
+      required: ['filename', 'contentType', 'fileSize'],
+      properties: {
+        filename: { type: 'string', minLength: 1, maxLength: 255 },
+        contentType: { 
+          type: 'string', 
+          pattern: '^video/(mp4|mov|avi|quicktime)$',
+          description: 'Video MIME type'
+        },
+        fileSize: { 
+          type: 'number', 
+          minimum: 1, 
+          maximum: 500 * 1024 * 1024,
+          description: 'File size in bytes (max 500MB)'
+        },
+        duration: { type: 'number', description: 'Video duration in seconds' },
+        fps: { type: 'number', description: 'Frames per second' },
+        angle: { 
+          type: 'string', 
+          enum: ['front', 'side', 'overhead'],
+          description: 'Camera angle for shot analysis'
+        },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          uploadUrl: { type: 'string', format: 'uri' },
+          videoId: { type: 'string', format: 'uuid' },
+          key: { type: 'string' },
+          expiresAt: { type: 'string', format: 'date-time' },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, generateSignedUrl);
+
+server.post('/videos/:videoId/confirm', {
+  preHandler: createAuthMiddleware({ required: true }),
+  schema: {
+    description: 'Confirm video upload completion',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    params: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', format: 'uuid' },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          videoId: { type: 'string', format: 'uuid' },
+          status: { type: 'string', enum: ['uploaded'] },
+          downloadUrl: { type: 'string', format: 'uri' },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, confirmVideoUpload);
+
+server.get('/videos/:videoId', {
+  preHandler: createAuthMiddleware({ required: true }),
+  schema: {
+    description: 'Get video metadata',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    params: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', format: 'uuid' },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          videoId: { type: 'string', format: 'uuid' },
+          userId: { type: 'string' },
+          filename: { type: 'string' },
+          contentType: { type: 'string' },
+          fileSize: { type: 'number' },
+          duration: { type: 'number' },
+          fps: { type: 'number' },
+          angle: { type: 'string', enum: ['front', 'side', 'overhead'] },
+          uploadedAt: { type: 'string', format: 'date-time' },
+          status: { 
+            type: 'string', 
+            enum: ['uploading', 'uploaded', 'processing', 'processed', 'failed'] 
+          },
+          downloadUrl: { type: 'string', format: 'uri' },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, getVideoMetadata);
+
+server.get('/videos', {
+  preHandler: createAuthMiddleware({ required: true }),
+  schema: {
+    description: 'List user videos with pagination',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    querystring: {
+      type: 'object',
+      properties: {
+        limit: { type: 'string', pattern: '^[0-9]+$', description: 'Max 100' },
+        offset: { type: 'string', pattern: '^[0-9]+$' },
+        status: { 
+          type: 'string', 
+          enum: ['uploading', 'uploaded', 'processing', 'processed', 'failed'] 
+        },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          videos: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                videoId: { type: 'string', format: 'uuid' },
+                filename: { type: 'string' },
+                contentType: { type: 'string' },
+                fileSize: { type: 'number' },
+                status: { type: 'string' },
+                uploadedAt: { type: 'string', format: 'date-time' },
+                downloadUrl: { type: 'string', format: 'uri' },
+              },
+            },
+          },
+          total: { type: 'number' },
+          limit: { type: 'number' },
+          offset: { type: 'number' },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, listUserVideos);
 
 // Root endpoint
 server.get('/', {
