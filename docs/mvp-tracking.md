@@ -14,12 +14,12 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
 
 ## Progress Summary
 
-### ✅ Sprint 1 – Foundations
+### ✅ Sprint 1 – Foundations (COMPLETE)
 - **T-001** ✅ Monorepo & Tooling (Complete)
 - **T-002** ✅ Backend Health & OpenAPI (Complete)  
 - **T-003** ✅ Auth Wiring (Firebase JWT) (Complete - Production Ready)
-- **T-004** ⏳ Postgres Schema v1 (Next)
-- **T-005** ⏳ CI/CD Staging Deploy (Planned)
+- **T-004** ✅ Firebase Schema v1 (Complete - Full feature parity)
+- **T-005** ✅ CI/CD Staging Deploy (Complete)
 
 ### ⏳ Sprint 2 – Video + Metrics Contract + Baseline AI
 - **T-101** ⏳ Signed Upload Flow (API)
@@ -68,25 +68,28 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
    - ✅ Comprehensive OpenAPI documentation
    - ✅ Interactive Swagger UI at `/docs`
 
-### Currently Working On
-**T-003: Auth Wiring (Firebase JWT)**
-- Firebase Admin SDK integration
-- JWT validation middleware  
-- Role-based access control (PLAYER/COACH/ADMIN)
-- Protected route testing
+### Completed in Sprint 1
+1. **T-001**: Monorepo & Tooling (See ADR-001)
+2. **T-002**: Backend Health & OpenAPI (See ADR-002)
+3. **T-003**: Firebase JWT Auth (See ADR-003)
+4. **T-004**: Firebase/Firestore Schema v1 (See ADR-004)
+5. **T-005**: CI/CD Staging Deploy (See ADR-005)
 
-### Completed
-- **T-004**: Firebase/Firestore Schema v1 (pivoted from Postgres - full feature parity)
-
-### Next Up
-- **T-005**: Staging deployment pipeline
-- **T-101**: Video upload flow (Sprint 2 kickoff)
+### Next Sprint: Sprint 2 - Video + Metrics + AI
+- **T-101**: Signed Upload Flow (API)
+- **T-102**: RN Camera + Resumable Upload
+- **T-103**: ShotDNA Metrics JSON Contract
+- **T-104**: Baseline Model (MediaPipe → TFLite)
+- **T-105**: Feedback Overlay (Static → Live)
 
 ## Architecture Decisions Made
 
 1. **[ADR-000]** Context sync and technology stack decisions
 2. **[ADR-001]** Monorepo structure with pnpm workspaces  
 3. **[ADR-002]** Health monitoring and OpenAPI documentation standards
+4. **[ADR-003]** Firebase JWT authentication and role-based access control
+5. **[ADR-004]** Firebase/Firestore schema v1 (pivoted from Postgres)
+6. **[ADR-005]** CI/CD staging deployment with Firebase Cloud Functions + Hosting
 
 ## Technical Foundation Status
 

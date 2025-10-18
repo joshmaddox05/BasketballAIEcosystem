@@ -1,0 +1,73 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Firebase Staging
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/functions/package-lock.json
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Install Functions dependencies
+        working-directory: backend/functions
+        run: npm ci
+
+      - name: Build Functions
+        working-directory: backend/functions
+        run: npm run build
+
+      - name: Deploy to Firebase
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy \
+            --only functions,hosting \
+            --project basketball-ai-ecosystem \
+            --token "$FIREBASE_TOKEN" \
+            --force
+
+      - name: Verify deployment
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          sleep 10
+          
+          HEALTH_URL="https://us-central1-basketball-ai-ecosystem.cloudfunctions.net/api/healthz"
+          echo "🔍 Testing health endpoint: $HEALTH_URL"
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Health check passed (HTTP $HTTP_CODE)"
+            curl -s "$HEALTH_URL"
+          else
+            echo "❌ Health check failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Endpoints" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Health:** https://us-central1-basketball-ai-ecosystem.cloudfunctions.net/api/healthz" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Docs:** https://us-central1-basketball-ai-ecosystem.cloudfunctions.net/api/docs" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web Dashboard:** https://basketball-ai-ecosystem.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Firebase Console:** https://console.firebase.google.com/project/basketball-ai-ecosystem" >> $GITHUB_STEP_SUMMARY
