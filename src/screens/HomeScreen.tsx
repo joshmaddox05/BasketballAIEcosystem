@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContextFirebase';
 import { apiClient } from '../services/apiClient';
 
@@ -24,6 +25,7 @@ interface UserProfileData {
 
 export const HomeScreen: React.FC = () => {
   const { user, signOut, refreshToken } = useAuth();
+  const router = useRouter();
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -73,6 +75,10 @@ export const HomeScreen: React.FC = () => {
     } catch (error) {
       Alert.alert('Error', 'Failed to refresh token');
     }
+  };
+
+  const handleRecordShot = () => {
+    router.push('/camera');
   };
 
   useEffect(() => {
@@ -138,6 +144,10 @@ export const HomeScreen: React.FC = () => {
       )}
 
       <View style={styles.actions}>
+        <TouchableOpacity style={[styles.actionButton, styles.primaryButton]} onPress={handleRecordShot}>
+          <Text style={styles.actionButtonText}>🎥 Record Shot</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.actionButton} onPress={handleRefreshToken}>
           <Text style={styles.actionButtonText}>Refresh Token</Text>
         </TouchableOpacity>
@@ -246,6 +256,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 16,
+    marginBottom: 8,
   },
   actionButtonText: {
     color: '#fff',

@@ -33,8 +33,8 @@ export interface UpdateUserRoleRequest {
   role: 'free' | 'premium' | 'admin';
 }
 
-export const updateUserRole = async (request: FastifyRequest<{ Body: UpdateUserRoleRequest }>, reply: FastifyReply) => {
-  const { uid, role } = request.body;
+export const updateUserRole = async (request: FastifyRequest, reply: FastifyReply) => {
+  const { uid, role } = request.body as UpdateUserRoleRequest;
   const requestId = request.headers['x-request-id'] as string;
   const adminUser = request.user!;
 

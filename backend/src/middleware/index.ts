@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export const requestIdMiddleware = async (request: FastifyRequest, reply: FastifyReply) => {
-  const requestId = request.headers['x-request-id'] as string || uuidv4();
+  const requestId = request.headers['x-request-id'] as string || randomUUID();
   request.headers['x-request-id'] = requestId;
   reply.header('x-request-id', requestId);
 };
