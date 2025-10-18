@@ -1,4 +1,8 @@
-# MVP Plan – ShotDNA + DBE + Community
+# MVP Plan – - **T-001** ✅ Monorepo & Tooling (Complete)  
+- **T-002** ✅ Backend Health & OpenAPI (Complete)  
+- **T-003** ✅ Auth Wiring (Firebase JWT) (Complete - Production Ready)
+- **T-004** ✅ Firebase Schema v1 (Complete - See [comparison doc](./database-schema-comparison.md))
+- **T-005** ⏳ CI/CD Staging Deploy (Next)NA + DBE + Community
 
 **Issue Type:** Epic  
 **Created:** 2025-10-17  
@@ -71,9 +75,12 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
 - Role-based access control (PLAYER/COACH/ADMIN)
 - Protected route testing
 
+### Completed
+- **T-004**: Firebase/Firestore Schema v1 (pivoted from Postgres - full feature parity)
+
 ### Next Up
-- **T-004**: Postgres schema design and Prisma setup
 - **T-005**: Staging deployment pipeline
+- **T-101**: Video upload flow (Sprint 2 kickoff)
 
 ## Architecture Decisions Made
 
@@ -100,10 +107,14 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
 - [x] Structured error handling
 
 ### 🔄 Current Work
-- [ ] Firebase Auth integration
-- [ ] JWT middleware and role guards
-- [ ] Database schema and migrations
-- [ ] Staging deployment pipeline
+- [ ] CI/CD staging deployment pipeline (T-005)
+- [ ] Video upload flow planning (T-101)
+
+### ✅ Recently Completed
+- [x] Firebase Auth integration (T-003)
+- [x] JWT middleware and role guards (T-003)
+- [x] Database schema and migrations (T-004 - Firebase/Firestore)
+- [x] Repository pattern and type safety (T-004)
 
 ## Key Metrics & Acceptance Criteria
 
