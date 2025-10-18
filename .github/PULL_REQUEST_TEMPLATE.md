@@ -1,20 +1,29 @@
-### What changed
+## What changed
 - 
 
-### Acceptance Criteria
+## Acceptance Criteria
 - 
 
-### Tests
-- Unit:
-- Integration:
-- E2E:
+## Tests
+- **Unit:**
+- **Integration:**
+- **E2E:**
 
-### Docs
-- ADR:
-- OpenAPI/schema:
+## Docs
+- **ADR:**
+- **OpenAPI/schema:**
 
-### Feature flags
+## Feature flags
 - 
 
-### How I verified
-- Commands/screens/URLs:
+## How I verified
+- **Commands/screens/URLs:**
+
+## Checklist
+- [ ] Code compiles without errors (`pnpm type-check`)
+- [ ] Linter passes (`pnpm lint`)
+- [ ] Tests pass (`pnpm test`)
+- [ ] Documentation updated
+- [ ] ADR created (if architectural decision)
+- [ ] OpenAPI schema updated (if API changes)
+- [ ] Telemetry events added (if user-facing feature)

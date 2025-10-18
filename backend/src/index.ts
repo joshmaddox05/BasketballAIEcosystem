@@ -5,8 +5,16 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import 'dotenv/config';
 import { requestIdMiddleware, errorHandler } from './middleware';
+import { requireAuth } from './middleware/auth';
 import { getHealthStatus } from './routes/health';
+import { 
+  requestSignedUrl, 
+  confirmVideoUpload, 
+  getVideoDetails, 
+  listUserVideos 
+} from './routes/videos';
 import { initializeFirebase } from './services/firebase';
+import { initializeStorage } from './services/storage';
 
 const server = Fastify({
   logger: true,
@@ -14,12 +22,13 @@ const server = Fastify({
   requestIdHeader: 'x-request-id',
 });
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK and Storage
 try {
   initializeFirebase();
-  server.log.info('Firebase Admin SDK initialized');
+  initializeStorage();
+  server.log.info('Firebase Admin SDK and Storage initialized');
 } catch (error) {
-  server.log.warn('Firebase Admin SDK initialization failed (may be in test mode)');
+  server.log.warn('Firebase initialization failed (may be in test mode)');
 }
 
 // Register middleware
@@ -167,6 +176,201 @@ server.get('/', {
     requestId,
   };
 });
+
+// ========================================
+// VIDEO ROUTES (T-101)
+// ========================================
+
+// POST /videos/signed-url - Request signed URL for video upload
+server.post<{
+  Body: {
+    fileName: string;
+    contentType: string;
+    size: number;
+    duration?: number;
+    fps?: number;
+    angle?: 'front' | 'side' | '3quarter';
+  };
+}>('/videos/signed-url', {
+  preHandler: requireAuth,
+  schema: {
+    description: 'Generate a signed URL for direct video upload to Firebase Storage',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    body: {
+      type: 'object',
+      required: ['fileName', 'contentType', 'size'],
+      properties: {
+        fileName: { type: 'string', minLength: 1, maxLength: 255 },
+        contentType: { 
+          type: 'string', 
+          enum: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+          description: 'Video MIME type'
+        },
+        size: { 
+          type: 'number', 
+          minimum: 1, 
+          maximum: 524288000,
+          description: 'File size in bytes (max 500MB)'
+        },
+        duration: { type: 'number', minimum: 0, description: 'Video duration in seconds' },
+        fps: { type: 'number', minimum: 0, description: 'Frames per second' },
+        angle: { 
+          type: 'string', 
+          enum: ['front', 'side', '3quarter'],
+          description: 'Shooting angle'
+        },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'object',
+            properties: {
+              videoId: { type: 'string' },
+              uploadUrl: { type: 'string' },
+              fileKey: { type: 'string' },
+              expiresAt: { type: 'string', format: 'date-time' },
+            },
+          },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, requestSignedUrl);
+
+// POST /videos/:videoId/confirm - Confirm video upload completion
+server.post<{
+  Params: { videoId: string };
+  Body: any;
+}>('/videos/:videoId/confirm', {
+  preHandler: requireAuth,
+  schema: {
+    description: 'Confirm video upload and update metadata',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    params: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string' },
+      },
+    },
+    body: {
+      type: 'object',
+      properties: {
+        duration: { type: 'number' },
+        fps: { type: 'number' },
+        resolution: {
+          type: 'object',
+          properties: {
+            width: { type: 'number' },
+            height: { type: 'number' },
+          },
+        },
+        metadata: {
+          type: 'object',
+          properties: {
+            shootingAngle: { type: 'string', enum: ['front', 'side', '3quarter'] },
+            court: { type: 'string' },
+            lighting: { type: 'string', enum: ['indoor', 'outdoor', 'low_light'] },
+          },
+        },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'object',
+            properties: {
+              videoId: { type: 'string' },
+              status: { type: 'string' },
+            },
+          },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, confirmVideoUpload);
+
+// GET /videos/:videoId - Get video details
+server.get<{
+  Params: { videoId: string };
+}>('/videos/:videoId', {
+  preHandler: requireAuth,
+  schema: {
+    description: 'Get video details with signed download URL',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    params: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string' },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'object',
+            additionalProperties: true,
+          },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, getVideoDetails);
+
+// GET /videos - List user's videos
+server.get<{
+  Querystring: {
+    limit?: string;
+    offset?: string;
+    status?: string;
+  };
+}>('/videos', {
+  preHandler: requireAuth,
+  schema: {
+    description: 'List videos for authenticated user',
+    tags: ['Videos'],
+    security: [{ bearerAuth: [] }],
+    querystring: {
+      type: 'object',
+      properties: {
+        limit: { type: 'string', default: '10' },
+        offset: { type: 'string', default: '0' },
+        status: { 
+          type: 'string', 
+          enum: ['uploading', 'processing', 'ready', 'failed'],
+        },
+      },
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'object',
+            properties: {
+              videos: { type: 'array', items: { type: 'object' } },
+              total: { type: 'number' },
+              limit: { type: 'number' },
+              offset: { type: 'number' },
+            },
+          },
+          requestId: { type: 'string', format: 'uuid' },
+        },
+      },
+    },
+  },
+}, listUserVideos);
 
 const start = async () => {
   try {
