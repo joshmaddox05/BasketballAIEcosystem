@@ -21,8 +21,8 @@ Track implementation of Basketball AI Ecosystem MVP with AI jump-shot critique, 
 - **T-004** ✅ Firebase Schema v1 (Complete - Full feature parity)
 - **T-005** ✅ CI/CD Staging Deploy (Complete)
 
-### ⏳ Sprint 2 – Video + Metrics Contract + Baseline AI
-- **T-101** ⏳ Signed Upload Flow (API)
+### 🔄 Sprint 2 – Video + Metrics Contract + Baseline AI (IN PROGRESS)
+- **T-101** ✅ Signed Upload Flow (API) (Complete - See [ADR-101](./adr/101-signed-upload-flow.md))
 - **T-102** ⏳ RN Camera + Resumable Upload  
 - **T-103** ⏳ ShotDNA Metrics JSON Contract
 - **T-104** ⏳ Baseline Model (MediaPipe → TFLite)
