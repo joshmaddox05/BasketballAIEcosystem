@@ -210,44 +210,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      // Check if we're in a development build or Expo Go
-      if (!googleRequest) {
-        // Show helpful message for Expo Go users
-        const errorMessage = 
-          'Google Sign-In requires a development build. ' +
-          'Please use email/password authentication in Expo Go, ' +
-          'or run "npx expo run:ios" to build a development version with native modules.';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      console.log('🔐 Initiating Google sign-in...');
-      
-      // Prompt for Google sign-in
-      const result = await promptGoogleAsync();
-
-      if (result?.type === 'success') {
-        console.log('✅ Google auth successful, exchanging token...');
-        const { id_token } = result.params;
-        
-        // Create Google credential
-        const credential = GoogleAuthProvider.credential(id_token);
-        
-        // Sign in with Firebase
-        const userCredential = await signInWithCredential(auth, credential);
-        
-        // Store token
-        const token = await userCredential.user.getIdToken();
-        await storeToken(token);
-        
-        console.log('✅ Google sign-in complete');
-      } else if (result?.type === 'cancel') {
-        console.log('❌ User cancelled Google sign-in');
-        throw new Error('Google sign-in was cancelled');
-      } else {
-        console.error('❌ Google sign-in failed:', result);
-        throw new Error('Google sign-in failed');
-      }
+      // Show helpful message - Google Sign-In will be implemented with @react-native-google-signin/google-signin
+      const errorMessage = 
+        'Google Sign-In is not yet configured for this build. ' +
+        'Please use email/password authentication. ' +
+        'To enable Google Sign-In, install @react-native-google-signin/google-signin.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } catch (err) {
       console.error('❌ Google sign-in error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Google sign-in failed';
@@ -442,7 +411,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshProfile,
     clearError,
     refreshToken,
-  }), [user, profile, loading, error, googleRequest]);
+  }), [user, profile, loading, error]);
 
   return (
     <AuthContext.Provider value={value}>
